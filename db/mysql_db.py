@@ -1,6 +1,6 @@
 from enum import Enum
 from typing import Optional
-from mysql.connector import connect
+from mysql import connector
 
 class Error(Enum):
     OK = (0, 'Успешно')
@@ -19,18 +19,19 @@ class DB:
             password: str, database: str
         ) -> None:
         try:
-            self.connection = connect(
+            self.connection = connector.connect(
                 host=host,
                 user=user,
                 password=password,
                 database=database
             )
-        except Exception as e:
+        except connector.Error as e:
             print(e)
             raise Exception('Can\'t connect to database')
         
     def __del__(self):
-        self.connection.close()
+        if self.connection.is_connected():
+            self.connection.close()
         
     def get_secret(self, user_id: int, name: str) -> Optional[str]:
         query = """
@@ -96,4 +97,3 @@ class DB:
             
     def is_exist(self, user_id: int, name: str) -> bool:
         return self.get_secret(user_id, name) is not None
-            

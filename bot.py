@@ -1,11 +1,21 @@
-from selectors import EpollSelector
 import telebot
 from db.mysql_db import DB
 from steam_totm.guard import Guard
+import os
+from dotenv import load_dotenv, find_dotenv
 
-db = DB('localhost', 'user', 'password', 'steam_guard')
 
-bot = telebot.TeleBot('5429350887:AAEr14yYCLa737PvBxj0q1So3fmv2en54xw')
+load_dotenv(find_dotenv())
+
+
+db = DB(
+    os.environ.get('MYSQL_HOST'),
+    os.environ.get('MYSQL_USER'),
+    os.environ.get('MYSQL_PASSWORD'),
+    os.environ.get('MYSQL_DATABASE')
+)
+
+bot = telebot.TeleBot(os.environ.get('BOT_TOKEN'))
 
 user_secret_name = {}
 user_step = {}
@@ -64,7 +74,7 @@ def get_secret(message):
 def list(message):
     names = db.get_user_secrets_name(message.chat.id)
     
-    if names is []:
+    if names == []:
         bot.send_message(message.chat.id, 'У вас нет добавленных аккаунтов')
         return
     
@@ -115,4 +125,4 @@ def delete(message):
     bot.send_message(message.chat.id, 'Аккаунт успешно удалён')
     user_step[message.chat.id] = 0
 
-bot.polling(non_stop=True, interval=0)
+bot.infinity_polling()
