@@ -1,3 +1,4 @@
+version: '3.9'
 services:
   db:
     image: mysql
@@ -15,8 +16,9 @@ services:
     ports:
       - '3306:3306'
     volumes:
-      - ./mysql:/var/lib/mysql
-    
+      - ./init_mysql:/docker-entrypoint-initdb.d
+      - mysql:/var/lib/mysql
+
 
   bot:
     build: .
@@ -24,8 +26,11 @@ services:
       - .:/code
     links:
       - db
+    ports:
+      - '8443:${WEBHOOK_PORT}'
     depends_on:
       db:
         condition: service_healthy
 
-    
+volumes:
+  mysql:
