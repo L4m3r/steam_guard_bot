@@ -5,6 +5,7 @@ from steam_totp import Guard
 import os
 from dotenv import load_dotenv, find_dotenv
 from aiohttp import web
+import ssl
 
 load_dotenv(find_dotenv())
 
@@ -17,6 +18,9 @@ WEBHOOK_LISTEN = os.environ.get('WEBHOOK_LISTEN')
 # TODO add port from config
 WEBHOOK_URL_BASE = f"https://{WEBHOOK_HOST}:443"
 WEBHOOK_URL_PATH = f"/{BOT_TOKEN}/"
+
+WEBHOOK_SSL_CERT = './webhook_cert.pem'
+WEBHOOK_SSL_PRIV = './webhook_pkey.pem'
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -152,10 +156,15 @@ def delete(message: types.Message):
 
 bot.remove_webhook()
 
-bot.set_webhook(url=WEBHOOK_URL_BASE + WEBHOOK_URL_PATH)
+bot.set_webhook(url=WEBHOOK_URL_BASE + WEBHOOK_URL_PATH,
+                certificate=open(WEBHOOK_SSL_CERT, 'r'))
+
+context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+context.load_cert_chain(WEBHOOK_SSL_CERT, WEBHOOK_SSL_PRIV)
 
 web.run_app(
     app,
     host=WEBHOOK_LISTEN,
     port=WEBHOOK_PORT,
+    ssl_context=context,
 )
