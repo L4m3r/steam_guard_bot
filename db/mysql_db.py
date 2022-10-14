@@ -18,21 +18,41 @@ class DB:
             self, host: str, user: str,
             password: str, database: str
         ) -> None:
-        try:
-            self.connection = connector.connect(
-                host=host,
-                user=user,
-                password=password,
-                database=database
-            )
-        except connector.Error as e:
-            print(e)
-            raise Exception('Can\'t connect to database')
+
+        self.host = host
+        self.user = user
+        self.password = password
+        self.database = database
+        self.connect()
+            
         
     def __del__(self):
         if self.connection.is_connected():
             self.connection.close()
-        
+            
+    def connect(self):
+        try:
+            self.connection = connector.connect(
+                host=self.host,
+                user=self.user,
+                password=self.password,
+                database=self.database
+            )
+        except connector.Error as e:
+            print(e)
+            raise Exception('Can\'t connect to database')
+    
+    @staticmethod
+    def connection_requirement(func):
+        def check(self, *args, **kwargs):
+            
+            if self.connection.is_closed():
+                self.connect()
+            return func(self, *args, **kwargs)
+            
+        return check
+    
+    @connection_requirement
     def get_secret(self, user_id: int, name: str) -> Optional[str]:
         query = """
         SELECT secret 
@@ -45,7 +65,8 @@ class DB:
             
             secret = cursor.fetchone()
             return None if secret is None else secret[0]
-        
+    
+    @connection_requirement
     def get_user_secrets_name(self, user_id: int) -> list[str]:
         query = """
         SELECT name 
@@ -58,7 +79,8 @@ class DB:
             
             names = cursor.fetchall()
             return [] if names is None else list(name[0] for name in names)
-        
+    
+    @connection_requirement
     def set_secret(self, user_id: int, name: str, secret: str) -> Error:
         if (len(name) >= 100):
             return Error.LONG_NAME
@@ -79,6 +101,7 @@ class DB:
             
         return Error.OK
     
+    @connection_requirement
     def delete_secret(self, user_id: int, name: str) -> Error:
         secret = self.get_secret(user_id, name)
         if secret is None:

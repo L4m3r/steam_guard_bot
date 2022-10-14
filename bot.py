@@ -1,7 +1,7 @@
 import telebot
 from telebot import types
-from db.mysql_db import DB
-from steam_totm.guard import Guard
+from db import DB
+from steam_totm import Guard
 import os
 from dotenv import load_dotenv, find_dotenv
 from aiohttp import web
