@@ -6,6 +6,15 @@ import os
 from dotenv import load_dotenv, find_dotenv
 from aiohttp import web
 import ssl
+import logging
+
+FORMAT = '%(asctime)s %(levelname)s - %(name)s: "%(message)s" (%(filename)s:%(lineno)d %(threadName)s)'
+
+logger = telebot.logger
+telebot.logger.setLevel(logging.DEBUG)
+
+for handler in telebot.logger.handlers:
+    handler.setFormatter(logging.Formatter(FORMAT))
 
 load_dotenv(find_dotenv())
 
@@ -30,6 +39,7 @@ async def handle(request):
 
     request_body_dict = await request.json()
     update = telebot.types.Update.de_json(request_body_dict)
+    logger.debug('Handle update')
     bot.process_new_updates([update])
     return web.Response(status=200)
 
@@ -55,6 +65,7 @@ def get_user_step(user_id):
 
 @bot.message_handler(func=lambda message: message.text in ['/start', 'Назад'])
 def start(message: types.Message):
+    logger.debug('Called start handler')
     markup = telebot.types.ReplyKeyboardMarkup(True, False)
     markup.row('Все аккаунты', 'Добавить аккаунт')
     markup.row('Удалить аккаунт')
@@ -64,10 +75,12 @@ def start(message: types.Message):
 
 @bot.message_handler(func=lambda message: message.text in ['/add', 'Добавить аккаунт'])
 def add(message: types.Message):
+    logger.debug('Called add handler')
     bot.send_message(message.chat.id, 'Введите название аккаунта')
     bot.register_next_step_handler(message, get_name)
 
 def get_name(message: types.Message, content_types=['text']):
+    logger.debug('Called get_name handler')
     name = message.text
     
     if name == 'exit':
@@ -84,6 +97,8 @@ def get_name(message: types.Message, content_types=['text']):
     bot.register_next_step_handler(message, get_secret)
     
 def get_secret(message: types.Message, content_types=['text']):
+    logger.debug('Called get_secret handler')
+    
     secret = message.text
     
     user_id = message.chat.id
@@ -98,6 +113,8 @@ def get_secret(message: types.Message, content_types=['text']):
 
 @bot.message_handler(func=lambda message: message.text in ['/list', 'Все аккаунты'])
 def list(message: types.Message):
+    logger.debug('Called list handler')
+    
     names = db.get_user_secrets_name(message.chat.id)
     
     if names == []:
@@ -115,6 +132,8 @@ def list(message: types.Message):
 
 @bot.message_handler(func=lambda message: get_user_step(message.chat.id) == 2)
 def guard_code(message: types.Message):
+    logger.debug('Called guard_code handler')
+    
     name = message.text
     secret = db.get_secret(message.chat.id, name)
     if secret == None:
@@ -126,6 +145,8 @@ def guard_code(message: types.Message):
 
 @bot.message_handler(func=lambda message: message.text in ['/delete', 'Удалить аккаунт'])
 def delete_list(message: types.Message):
+    logger.debug('Called delete_list handler')
+    
     names = db.get_user_secrets_name(message.chat.id)
     
     if names is []:
@@ -143,6 +164,8 @@ def delete_list(message: types.Message):
 
 @bot.message_handler(func=lambda message: get_user_step(message.chat.id) == 1)
 def delete(message: types.Message):
+    logger.debug('Called delete handler')
+    
     name = message.text
     
     res = db.delete_secret(message.chat.id, name)

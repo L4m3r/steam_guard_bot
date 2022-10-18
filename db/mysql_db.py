@@ -1,6 +1,10 @@
+from cmath import log
 from enum import Enum
 from typing import Optional
 from mysql import connector
+import logging
+
+logger = logging.getLogger('TeleBot')
 
 class Error(Enum):
     OK = (0, 'Успешно')
@@ -39,14 +43,16 @@ class DB:
                 database=self.database
             )
         except connector.Error as e:
-            print(e)
-            raise Exception('Can\'t connect to database')
+            logger.exception('Can\'t connect to database')
+        else:
+            logger.debug('Connected to database')
     
     @staticmethod
     def connection_requirement(func):
         def check(self, *args, **kwargs):
             
-            if self.connection.is_closed():
+            if self.connection is None or self.connection.is_closed():
+                logger.debug('No connection to database')
                 self.connect()
             return func(self, *args, **kwargs)
             
